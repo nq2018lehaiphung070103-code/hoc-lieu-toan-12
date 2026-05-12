@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tương quan f(x) và f'(x) - THCS Bình Hòa</title>
+    <script src="https://cdn.plot.ly/plotly-2.24.1.min.js"></script>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --danger: #ef4444;
+            --success: #10b981;
+            --bg: #f8fafc;
+        }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; padding: 20px; display: flex; justify-content: center; }
+        .container { background: white; padding: 25px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); max-width: 1100px; width: 100%; }
+        h1 { text-align: center; color: #1e293b; font-size: 1.5rem; text-transform: uppercase; margin-bottom: 20px; border-bottom: 2px solid var(--primary); padding-bottom: 10px; }
+        
+        .layout { display: grid; grid-template-columns: 1fr; gap: 20px; }
+        #plot-area { width: 100%; height: 600px; border: 1px solid #e2e8f0; border-radius: 8px; }
+        
+        .controls { background: #f1f5f9; padding: 20px; border-radius: 12px; display: flex; flex-direction: column; gap: 15px; }
+        .slider-container { display: flex; align-items: center; gap: 15px; }
+        input[type=range] { flex: 1; cursor: pointer; }
+        
+        .btn-group { display: flex; gap: 10px; justify-content: center; }
+        .btn { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; transition: 0.3s; color: white; }
+        .btn-toggle { background: var(--secondary, #64748b); }
+        .btn-toggle.active { background: var(--success); }
+
+        .explanation { background: #fffbeb; border-left: 4px solid #f59e0b; padding: 15px; border-radius: 4px; font-size: 0.95em; line-height: 1.6; }
+        .author-box { margin-top: 20px; padding-top: 15px; border-top: 1px solid #e2e8f0; text-align: right; font-size: 0.85em; color: #64748b; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Mối liên hệ giữa đồ thị hàm số \( f(x) \) và đạo hàm \( f'(x) \)</h1>
+
+    <div class="layout">
+        <div id="plot-area"></div>
+
+        <div class="controls">
+            <div class="slider-container">
+                <label>Di chuyển x: <b><span id="x-val">0.0</span></b></label>
+                <input type="range" id="x-slider" min="-2.5" max="2.5" step="0.1" value="-2.5">
+            </div>
+
+            <div class="btn-group">
+                <button id="toggle-pts" class="btn btn-toggle">Hiện Cực Trị (A, B)</button>
+            </div>
+
+            <div class="explanation" id="pedagogy-tip">
+                <b>💡 Quan sát sư phạm:</b> Di chuyển thanh trượt để thấy sự tương ứng màu sắc. 
+                Khi đường dóng màu <span style="color:var(--success)">Xanh lá</span>, hàm số đang đồng biến. 
+                Khi đường dóng màu <span style="color:var(--danger)">Đỏ</span>, hàm số đang nghịch biến.
+            </div>
+        </div>
+    </div>
+
+    <div class="author-box">
+        Tác giả: <strong>Nguyễn Quý</strong> | Đơn vị: <strong>Trường THCS Bình Hòa</strong>
+    </div>
+</div>
+
+<script>
+    const slider = document.getElementById('x-slider');
+    const xText = document.getElementById('x-val');
+    const toggleBtn = document.getElementById('toggle-pts');
+    let showPoints = false;
+
+    // Hàm số f(x) = x^3 - 3x
+    const f = (x) => Math.pow(x, 3) - 3 * x;
+    // Đạo hàm f'(x) = 3x^2 - 3
+    const df = (x) => 3 * Math.pow(x, 2) - 3;
+
+    const xValues = [];
+    for (let i = -3; i <= 3; i += 0.05) xValues.push(i);
+
+    function draw() {
+        const curX = parseFloat(slider.value);
+        xText.innerText = curX.toFixed(1);
+
+        const curY = f(curX);
+        const curDY = df(curX);
+        const isIncreasing = curDY >= 0;
+        const color = isIncreasing ? '#10b981' : '#ef4444';
+
+        const data = [
+            // Đồ thị f(x)
+            {
+                x: xValues, y: xValues.map(f),
+                name: 'f(x) = x³ - 3x', line: {color: '#94a3b8', width: 2}
+            },
+            // Đồ thị f'(x)
+            {
+                x: xValues, y: xValues.map(df),
+                name: "f'(x) = 3x² - 3", line: {color: '#fbbf24', width: 2}
+            },
+            // Đường dóng thẳng đứng tương quan
+            {
+                x: [curX, curX], y: [curY, curDY],
+                mode: 'lines+markers',
+                name: 'Tương quan x',
+                line: {color: color, width: 3, dash: 'dash'},
+                marker: {size: 10, color: [color, color]}
+            }
+        ];
+
+        // Thêm cực trị nếu bật
+        if (showPoints) {
+            data.push({
+                x: [-1, 1], y: [f(-1), f(1)],
+                mode: 'markers+text',
+                name: 'Cực trị',
+                text: ['Cực đại A(-1;2)', 'Cực tiểu B(1;-2)'],
+                textposition: 'top center',
+                marker: {color: '#1e293b', size: 12, symbol: 'diamond'}
+            });
+        }
+
+        const layout = {
+            margin: { t: 40, b: 40, l: 40, r: 40 },
+            showlegend: true,
+            legend: { orientation: 'h', y: -0.1 },
+            xaxis: { range: [-3, 3], title: 'x', zeroline: true },
+            yaxis: { range: [-6, 6], title: 'y', zeroline: true },
+            hovermode: false,
+            annotations: [
+                { x: curX, y: curY, text: `f(${curX})`, showarrow: true, arrowhead: 2, ax: -40, ay: -30 },
+                { x: curX, y: curDY, text: `f'(${curX})`, showarrow: true, arrowhead: 2, ax: 40, ay: 30 }
+            ]
+        };
+
+        Plotly.newPlot('plot-area', data, layout, {displayModeBar: false});
+    }
+
+    slider.addEventListener('input', draw);
+    toggleBtn.addEventListener('click', () => {
+        showPoints = !showPoints;
+        toggleBtn.classList.toggle('active', showPoints);
+        toggleBtn.innerText = showPoints ? "Ẩn Cực Trị" : "Hiện Cực Trị (A, B)";
+        draw();
+    });
+
+    draw();
+</script>
+
+</body>
+</html>
